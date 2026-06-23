@@ -1,31 +1,31 @@
 export default async function handler(req, res) {
-  const url = req.query.url;
-  if (!url) return res.status(400).send("Missing ?url=");
+  const target = req.query.url;
+  if (!target) return res.status(400).send("Missing ?url=");
 
   try {
-    const r = await fetch(url, {
+    const base = new URL(target);
+    const r = await fetch(target, {
       headers: { "User-Agent": "Mozilla/5.0" }
     });
 
-    let text = await r.text();
+    let html = await r.text();
 
-    // Rewrite ALL links to go back through the proxy
-    text = text.replace(/href="(.*?)"/g, (m, link) => {
-      if (link.startsWith("http")) {
-        return `href="/?u=${encodeURIComponent(link)}"`;
-      }
-      return m;
+    // Fix relative links: /path → full URL
+    html = html.replace(/(href|src)="(\/[^"]*)"/g, (m, attr, path) => {
+      const full = base.origin + path;
+      return `${attr}="/?u=${encodeURIComponent(full)}"`;
     });
 
-    text = text.replace(/src="(.*?)"/g, (m, link) => {
-      if (link.startsWith("http")) {
-        return `src="/api/p.js?url=${encodeURIComponent(link)}"`;
-      }
-      return m;
+    // Fix absolute links
+    html = html.replace(/(href|src)="(https?:\/\/[^"]*)"/g, (m, attr, link) => {
+      return `${attr}="/?u=${encodeURIComponent(link)}"`;
     });
 
+    // Remove X-Frame-Options (prevents squishing)
+    res.setHeader("X-Frame-Options", "ALLOWALL");
     res.setHeader("Content-Type", "text/html");
-    res.send(text);
+
+    res.send(html);
   } catch (e) {
     res.status(500).send("Proxy error");
   }
