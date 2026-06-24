@@ -15,21 +15,29 @@ export default async function handler(req, res) {
         }
       });
 
-      // Handle redirects
+      // Handle redirects manually
       if (response.status >= 300 && response.status < 400) {
         const location = response.headers.get("location");
         if (!location) break;
+
+        // Resolve relative redirects
         url = new URL(location, url).href;
         continue;
       }
 
-      // Copy headers safely
+      // Copy content-type
       const contentType = response.headers.get("content-type") || "text/html";
       res.setHeader("content-type", contentType);
 
-      // Allow browser to display it
+      // CORS so browser doesn't block it
       res.setHeader("Access-Control-Allow-Origin", "*");
       res.setHeader("Access-Control-Allow-Headers", "*");
+
+      // Copy other headers safely
+      response.headers.forEach((value, key) => {
+        if (key.toLowerCase() === "content-type") return;
+        try { res.setHeader(key, value); } catch {}
+      });
 
       // Binary-safe body
       const buffer = Buffer.from(await response.arrayBuffer());
