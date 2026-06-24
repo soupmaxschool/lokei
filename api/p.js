@@ -13,41 +13,57 @@ export default async function handler(req, res) {
     const r = await fetch(target, {
       headers: {
         "User-Agent": "Mozilla/5.0",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+        "Accept": "*/*"
       }
     });
 
     let html = await r.text();
 
-    // Rewrite relative href/src → full URL via ?u=
+    // Remove CSP (DuckDuckGo blocks everything otherwise)
+    html = html.replace(/<meta[^>]*content-security-policy[^>]*>/gi, "");
+    html = html.replace(/Content-Security-Policy[^:]*:[^;"]*/gi, "");
+
+    // Remove X-Frame-Options
+    res.setHeader("X-Frame-Options", "ALLOWALL");
+
+    // Rewrite absolute URLs
+    html = html.replace(/(href|src)="(https?:\/\/[^"]*)"/g, (m, attr, link) => {
+      return `${attr}="/?u=${encodeURIComponent(link)}"`;
+    });
+
+    // Rewrite relative URLs
     html = html.replace(/(href|src)="(\/[^"]*)"/g, (m, attr, path) => {
       const full = base.origin + path;
       return `${attr}="/?u=${encodeURIComponent(full)}"`;
     });
 
-    // Rewrite absolute href/src → ?u=
-    html = html.replace(/(href|src)="(https?:\/\/[^"]*)"/g, (m, attr, link) => {
-      return `${attr}="/?u=${encodeURIComponent(link)}"`;
-    });
-
-    // Basic JS rewriting: intercept fetch/XMLHttpRequest URLs
-    html = html.replace(/fetch\("([^"]+)"\)/g, (m, url) => {
+    // Rewrite JS fetch()
+    html = html.replace(/fetch\(["'`](.*?)["'`]\)/g, (m, url) => {
       const full = url.startsWith("http")
         ? url
         : new URL(url, base).toString();
       return `fetch("/api/p.js?url=${encodeURIComponent(full)}")`;
     });
 
-    html = html.replace(/xhr\.open\("GET","([^"]+)"/g, (m, url) => {
+    // Rewrite XHR
+    html = html.replace(/open\(["']GET["'],["'](.*?)["']\)/g, (m, url) => {
       const full = url.startsWith("http")
         ? url
         : new URL(url, base).toString();
-      return `xhr.open("GET","/api/p.js?url=${encodeURIComponent(full)}"`;
+      return `open("GET","/api/p.js?url=${encodeURIComponent(full)}")`;
     });
 
-    res.setHeader("X-Frame-Options", "ALLOWALL");
+    // Rewrite form actions
+    html = html.replace(/<form[^>]*action="([^"]*)"/g, (m, action) => {
+      const full = action.startsWith("http")
+        ? action
+        : new URL(action, base).toString();
+      return m.replace(action, `/?u=${encodeURIComponent(full)}`);
+    });
+
     res.setHeader("Content-Type", "text/html");
     res.send(html);
+
   } catch (e) {
     res.status(500).send("Proxy error");
   }
