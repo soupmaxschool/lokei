@@ -25,32 +25,23 @@
     const btn = document.getElementById("go");
     const frame = document.getElementById("frame");
 
+    const BASE = "https://lokei-cyan.vercel.app";
+
     async function load() {
       let url = input.value.trim();
-      console.log("INPUT VALUE:", url);
+      if (!url) return;
 
-      if (!url) {
-        console.log("EMPTY INPUT");
-        return;
-      }
+      if (!url.startsWith("http")) url = "https://" + url;
 
-      if (!url.startsWith("http")) {
-        url = "https://" + url;
-      }
+      const endpoint = BASE + "/api/p?url=" + encodeURIComponent(url);
+      console.log("Loading:", endpoint);
 
-      const endpoint = "/api/p?url=" + encodeURIComponent(url);
-      console.log("FETCHING:", endpoint);
-
-      const res = await fetch(endpoint);
-      const html = await res.text();
-
+      const html = await fetch(endpoint).then(r => r.text());
       frame.srcdoc = html;
     }
 
     btn.onclick = load;
-    input.addEventListener("keydown", e => {
-      if (e.key === "Enter") load();
-    });
+    input.addEventListener("keydown", e => e.key === "Enter" && load());
   </script>
 
 </body>
