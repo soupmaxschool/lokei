@@ -1,81 +1,60 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Mini Browser</title>
+  <title>Proxy</title>
   <style>
-    html, body {
-      margin: 0;
-      height: 100%;
-      overflow: hidden;
-      background: #111;
-      color: #eee;
-      font-family: system-ui, sans-serif;
-    }
-
-    header {
-      height: 50px;
-      display: flex;
-      align-items: center;
-      padding: 0 10px;
+    body { margin: 0; padding: 0; }
+    #searchBar {
+      padding: 10px;
       background: #222;
+      color: white;
+      display: flex;
       gap: 10px;
     }
-
-    input {
+    #searchInput {
       flex: 1;
       padding: 8px;
-      border-radius: 6px;
-      border: none;
-      background: #333;
-      color: #eee;
+      font-size: 16px;
     }
-
-    button {
-      padding: 8px 14px;
-      border: none;
-      border-radius: 6px;
-      background: #4f8cff;
-      color: white;
-      font-weight: 600;
-    }
-
-    iframe {
+    #output {
       width: 100%;
-      height: calc(100% - 50px);
+      height: calc(100vh - 50px);
       border: none;
-      background: white;
     }
   </style>
 </head>
 <body>
 
-<header>
-  <form id="f" style="display:flex; gap:10px; flex:1;">
-    <input id="u" placeholder="https://example.com">
-    <button>Go</button>
-  </form>
-</header>
+  <div id="searchBar">
+    <input id="searchInput" placeholder="Enter URL…" />
+    <button id="goBtn">Go</button>
+  </div>
 
-<iframe id="v"></iframe>
+  <iframe id="output"></iframe>
 
-<script>
-  const f = document.getElementById("f");
-  const u = document.getElementById("u");
-  const v = document.getElementById("v");
+  <script>
+    const input = document.getElementById("searchInput");
+    const btn = document.getElementById("goBtn");
+    const frame = document.getElementById("output");
 
-  f.onsubmit = e => {
-    e.preventDefault();
-    let url = u.value.trim();
-    if (!/^https?:\/\//.test(url)) url = "https://" + url;
-    v.src = "/api/p.js?url=" + encodeURIComponent(url);
-  };
+    async function loadSite() {
+      const url = input.value.trim();
+      if (!url) return;
 
-  const params = new URLSearchParams(location.search);
-  if (params.get("u")) {
-    v.src = "/api/p.js?url=" + encodeURIComponent(params.get("u"));
-  }
-</script>
+      const encoded = encodeURIComponent(url);
+
+      const response = await fetch("/api/p?url=" + encoded);
+      const text = await response.text();
+
+      frame.srcdoc = text;
+    }
+
+    btn.onclick = loadSite;
+
+    input.addEventListener("keydown", e => {
+      if (e.key === "Enter") loadSite();
+    });
+  </script>
 
 </body>
 </html>
