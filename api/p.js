@@ -13,17 +13,14 @@ export default async function handler(req, res) {
       }
     });
 
-    // Handle redirect manually
     if (response.status >= 300 && response.status < 400) {
       const location = response.headers.get("location");
       if (!location) break;
 
-      // Resolve relative redirects
       url = new URL(location, url).href;
       continue;
     }
 
-    // Not a redirect → return final content
     const contentType = response.headers.get("content-type") || "text/html";
     const body = await response.arrayBuffer();
 
