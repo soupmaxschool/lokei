@@ -1,58 +1,83 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Proxy</title>
+  <meta charset="UTF-8">
+  <title>Proxy Browser</title>
   <style>
-    body { margin: 0; padding: 0; }
-    #searchBar {
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: #111;
+      color: #fff;
+    }
+    #bar {
       padding: 10px;
       background: #222;
-      color: white;
       display: flex;
       gap: 10px;
     }
-    #searchInput {
+    #url {
       flex: 1;
       padding: 8px;
       font-size: 16px;
+      border: none;
+      border-radius: 4px;
     }
-    #output {
+    #go {
+      padding: 8px 16px;
+      font-size: 16px;
+      background: #4caf50;
+      border: none;
+      border-radius: 4px;
+      color: white;
+      cursor: pointer;
+    }
+    #frame {
       width: 100%;
       height: calc(100vh - 50px);
       border: none;
+      background: white;
     }
   </style>
 </head>
 <body>
 
-  <div id="searchBar">
-    <input id="searchInput" placeholder="Enter URL…" />
-    <button id="goBtn">Go</button>
+  <div id="bar">
+    <input id="url" placeholder="Enter a URL…" />
+    <button id="go">Go</button>
   </div>
 
-  <iframe id="output"></iframe>
+  <iframe id="frame"></iframe>
 
   <script>
-    const input = document.getElementById("searchInput");
-    const btn = document.getElementById("goBtn");
-    const frame = document.getElementById("output");
+    const input = document.getElementById("url");
+    const btn = document.getElementById("go");
+    const frame = document.getElementById("frame");
 
-    async function loadSite() {
-      const url = input.value.trim();
-      if (!url) return;
+    async function load() {
+      let target = input.value.trim();
+      if (!target) return;
 
-      const encoded = encodeURIComponent(url);
+      // Auto-add https:// if missing
+      if (!target.startsWith("http://") && !target.startsWith("https://")) {
+        target = "https://" + target;
+      }
 
-      const response = await fetch("/api/p?url=" + encoded);
-      const text = await response.text();
+      const endpoint = "/api/p?url=" + encodeURIComponent(target);
 
-      frame.srcdoc = text;
+      try {
+        const res = await fetch(endpoint);
+        const html = await res.text();
+
+        frame.srcdoc = html;
+      } catch (err) {
+        frame.srcdoc = "<h1 style='color:red'>Proxy error</h1><pre>" + err + "</pre>";
+      }
     }
 
-    btn.onclick = loadSite;
-
+    btn.onclick = load;
     input.addEventListener("keydown", e => {
-      if (e.key === "Enter") loadSite();
+      if (e.key === "Enter") load();
     });
   </script>
 
