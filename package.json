@@ -1,9 +1,0 @@
-{
-  "name": "rammerhead-railway",
-  "version": "1.0.0",
-  "main": "server.js",
-  "dependencies": {
-    "rammerhead": "latest",
-    "express": "latest"
-  }
-}
