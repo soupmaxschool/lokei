@@ -20,7 +20,6 @@ export default async function handler(req, res) {
         const location = response.headers.get("location");
         if (!location) break;
 
-        // Resolve relative redirects
         url = new URL(location, url).href;
         continue;
       }
@@ -32,12 +31,6 @@ export default async function handler(req, res) {
       // CORS so browser doesn't block it
       res.setHeader("Access-Control-Allow-Origin", "*");
       res.setHeader("Access-Control-Allow-Headers", "*");
-
-      // Copy other headers safely
-      response.headers.forEach((value, key) => {
-        if (key.toLowerCase() === "content-type") return;
-        try { res.setHeader(key, value); } catch {}
-      });
 
       // Binary-safe body
       const buffer = Buffer.from(await response.arrayBuffer());
