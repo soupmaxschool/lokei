@@ -1,32 +1,36 @@
 export default async function handler(req, res) {
-  const target = req.query.url;
-  if (!target) return res.status(400).send("Missing ?url=");
+  let url = req.query.url;
+  if (!url) return res.status(400).send("Missing url");
 
-  try {
-    const base = new URL(target);
-    const r = await fetch(target, {
-      headers: { "User-Agent": "Mozilla/5.0" }
+  let maxRedirects = 10;
+
+  for (let i = 0; i < maxRedirects; i++) {
+    const response = await fetch(url, {
+      redirect: "manual",
+      headers: {
+        "User-Agent": req.headers["user-agent"] || "Mozilla/5.0",
+        "Accept": "*/*"
+      }
     });
 
-    let html = await r.text();
+    // Handle redirect manually
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get("location");
+      if (!location) break;
 
-    // Fix relative links: /path → full URL
-    html = html.replace(/(href|src)="(\/[^"]*)"/g, (m, attr, path) => {
-      const full = base.origin + path;
-      return `${attr}="/?u=${encodeURIComponent(full)}"`;
-    });
+      // Resolve relative redirects
+      url = new URL(location, url).href;
+      continue;
+    }
 
-    // Fix absolute links
-    html = html.replace(/(href|src)="(https?:\/\/[^"]*)"/g, (m, attr, link) => {
-      return `${attr}="/?u=${encodeURIComponent(link)}"`;
-    });
+    // Not a redirect → return final content
+    const contentType = response.headers.get("content-type") || "text/html";
+    const body = await response.arrayBuffer();
 
-    // Remove X-Frame-Options (prevents squishing)
-    res.setHeader("X-Frame-Options", "ALLOWALL");
-    res.setHeader("Content-Type", "text/html");
-
-    res.send(html);
-  } catch (e) {
-    res.status(500).send("Proxy error");
+    res.setHeader("content-type", contentType);
+    res.status(response.status).send(Buffer.from(body));
+    return;
   }
+
+  res.status(500).send("Too many redirects");
 }
