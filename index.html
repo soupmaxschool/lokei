@@ -3,8 +3,79 @@
 <head>
   <meta charset="UTF-8">
   <title>Mini Browser</title>
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background: #111;
+      color: #eee;
+      font-family: system-ui, sans-serif;
+    }
+
+    header {
+      height: 50px;
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      background: #222;
+      gap: 10px;
+    }
+
+    input {
+      flex: 1;
+      padding: 8px;
+      border-radius: 6px;
+      border: none;
+      background: #333;
+      color: #eee;
+    }
+
+    button {
+      padding: 8px 14px;
+      border: none;
+      border-radius: 6px;
+      background: #4f8cff;
+      color: white;
+      font-weight: 600;
+    }
+
+    iframe {
+      width: 100%;
+      height: calc(100% - 50px);
+      border: none;
+      background: white;
+    }
+  </style>
 </head>
-<body style="margin:0;background:#111;color:#eee;font-family:sans-serif;">
-  <iframe src="/api/rh/" style="border:none;width:100vw;height:100vh;"></iframe>
+<body>
+
+<header>
+  <form id="f" style="display:flex; gap:10px; flex:1;">
+    <input id="u" placeholder="https://example.com">
+    <button>Go</button>
+  </form>
+</header>
+
+<iframe id="v"></iframe>
+
+<script>
+  const f = document.getElementById("f");
+  const u = document.getElementById("u");
+  const v = document.getElementById("v");
+
+  f.onsubmit = e => {
+    e.preventDefault();
+    let url = u.value.trim();
+    if (!/^https?:\/\//.test(url)) url = "https://" + url;
+    v.src = "/api/p.js?url=" + encodeURIComponent(url);
+  };
+
+  const params = new URLSearchParams(location.search);
+  if (params.get("u")) {
+    v.src = "/api/p.js?url=" + encodeURIComponent(params.get("u"));
+  }
+</script>
+
 </body>
 </html>
