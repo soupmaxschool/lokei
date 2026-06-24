@@ -4,40 +4,11 @@
   <meta charset="UTF-8">
   <title>Proxy Browser</title>
   <style>
-    body {
-      margin: 0;
-      font-family: sans-serif;
-      background: #111;
-      color: #fff;
-    }
-    #bar {
-      padding: 10px;
-      background: #222;
-      display: flex;
-      gap: 10px;
-    }
-    #url {
-      flex: 1;
-      padding: 8px;
-      font-size: 16px;
-      border: none;
-      border-radius: 4px;
-    }
-    #go {
-      padding: 8px 16px;
-      font-size: 16px;
-      background: #4caf50;
-      border: none;
-      border-radius: 4px;
-      color: white;
-      cursor: pointer;
-    }
-    #frame {
-      width: 100%;
-      height: calc(100vh - 50px);
-      border: none;
-      background: white;
-    }
+    body { margin: 0; background: #111; color: #fff; font-family: sans-serif; }
+    #bar { padding: 10px; background: #222; display: flex; gap: 10px; }
+    #url { flex: 1; padding: 8px; font-size: 16px; border-radius: 4px; border: none; }
+    #go { padding: 8px 16px; font-size: 16px; background: #4caf50; border: none; border-radius: 4px; color: white; cursor: pointer; }
+    #frame { width: 100%; height: calc(100vh - 50px); border: none; background: white; }
   </style>
 </head>
 <body>
@@ -50,34 +21,40 @@
   <iframe id="frame"></iframe>
 
   <script>
-    const input = document.getElementById("url");
-    const btn = document.getElementById("go");
-    const frame = document.getElementById("frame");
+    window.addEventListener("DOMContentLoaded", () => {
+      const input = document.getElementById("url");
+      const btn = document.getElementById("go");
+      const frame = document.getElementById("frame");
 
-    async function load() {
-      let target = input.value.trim();
-      if (!target) return;
+      async function load() {
+        let target = input.value.trim();
+        console.log("Raw input:", target);
 
-      // Auto-add https:// if missing
-      if (!target.startsWith("http://") && !target.startsWith("https://")) {
-        target = "https://" + target;
+        if (!target) {
+          console.log("No input — stopping");
+          return;
+        }
+
+        if (!target.startsWith("http://") && !target.startsWith("https://")) {
+          target = "https://" + target;
+        }
+
+        const endpoint = "/api/p?url=" + encodeURIComponent(target);
+        console.log("Fetching:", endpoint);
+
+        try {
+          const res = await fetch(endpoint);
+          const html = await res.text();
+          frame.srcdoc = html;
+        } catch (err) {
+          frame.srcdoc = "<h1 style='color:red'>Proxy error</h1><pre>" + err + "</pre>";
+        }
       }
 
-      const endpoint = "/api/p?url=" + encodeURIComponent(target);
-
-      try {
-        const res = await fetch(endpoint);
-        const html = await res.text();
-
-        frame.srcdoc = html;
-      } catch (err) {
-        frame.srcdoc = "<h1 style='color:red'>Proxy error</h1><pre>" + err + "</pre>";
-      }
-    }
-
-    btn.onclick = load;
-    input.addEventListener("keydown", e => {
-      if (e.key === "Enter") load();
+      btn.onclick = load;
+      input.addEventListener("keydown", e => {
+        if (e.key === "Enter") load();
+      });
     });
   </script>
 
